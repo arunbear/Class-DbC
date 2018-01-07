@@ -6,7 +6,7 @@ use DbC::Contract
             precond => {
                 positive_int_size => sub {
                     my (undef, $size) = @_;
-                    $size->{max_size} =~ /^\d+$/ && $size->{max_size} > 0;
+                    $size =~ /^\d+$/ && $size > 0;
                 },
             },
             postcond => {
