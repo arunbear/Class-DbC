@@ -1,4 +1,4 @@
-package DbC::Contract;
+package Class::DbC;
 
 use strict;
 use Class::Method::Modifiers qw(install_modifier);

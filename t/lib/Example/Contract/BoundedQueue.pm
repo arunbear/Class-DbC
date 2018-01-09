@@ -1,6 +1,6 @@
 package Example::Contract::BoundedQueue;
 
-use DbC::Contract
+use Class::DbC
     interface => {
         new => {
             precond => {
