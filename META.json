@@ -12,7 +12,7 @@
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
       "version" : "2"
    },
-   "name" : "DbC",
+   "name" : "Class-DbC",
    "no_index" : {
       "directory" : [
          "t",
@@ -56,13 +56,13 @@
    "release_status" : "unstable",
    "resources" : {
       "bugtracker" : {
-         "web" : "https://github.com/arunbear/DbC/issues"
+         "web" : "https://github.com/arunbear/Class-DbC/issues"
       },
-      "homepage" : "https://github.com/arunbear/DbC",
+      "homepage" : "https://github.com/arunbear/Class-DbC",
       "repository" : {
          "type" : "git",
-         "url" : "git://github.com/arunbear/DbC.git",
-         "web" : "https://github.com/arunbear/DbC"
+         "url" : "git://github.com/arunbear/Class-DbC.git",
+         "web" : "https://github.com/arunbear/Class-DbC"
       }
    },
    "version" : "0.01",
