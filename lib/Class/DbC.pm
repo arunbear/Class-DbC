@@ -30,19 +30,36 @@ sub _add_governor {
 }
 
 sub _governor {
-    my ($class, $pkg, $type) = @_;
+    my $class = shift;
+    my ($pkg, $type) = validate_pos(@_,
+        { type => SCALAR },
+        { regex => qr/^all|pre|post|invariant$/, default => 'all' },
+    );
     
-        # use Data::Dump 'pp'; die pp();
-    $type ||= 'all';
+    my %enabled;
+    if ($type eq 'all') {
+        $enabled{$_} = 1 for qw/pre post invariant/;
+    }
+    else {
+        $enabled{$type} = 1;
+    }
+
     my $interface_hash = $Spec_for{$class}{interface};
     my $invariant_hash = $Spec_for{$class}{invariant};
 
     foreach my $name (keys %{ $interface_hash }) {
         $pkg->can($name)
           or confess "Class $pkg does not have a '$name' method, which is required by $class";
-        $class->_add_pre_conditions($pkg, $name, $interface_hash->{$name}{precond});
-        $class->_add_post_conditions($pkg, $name, $interface_hash->{$name}{postcond});
-        $class->_add_invariants($pkg, $name, $invariant_hash);
+
+        if ($enabled{pre}) {
+            $class->_add_pre_conditions($pkg, $name, $interface_hash->{$name}{precond});
+        }
+        if ($enabled{post}) {
+            $class->_add_post_conditions($pkg, $name, $interface_hash->{$name}{postcond});
+        }
+        if ($enabled{invariant}) {
+            $class->_add_invariants($pkg, $name, $invariant_hash);
+        }
     }
 }
 
