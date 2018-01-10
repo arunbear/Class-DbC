@@ -35,14 +35,15 @@ sub _governor {
         # use Data::Dump 'pp'; die pp();
     $type ||= 'all';
     my $interface_hash = $Spec_for{$class}{interface};
+    my $invariant_hash = $Spec_for{$class}{invariant};
 
     foreach my $name (keys %{ $interface_hash }) {
         $pkg->can($name)
           or confess "Class $pkg does not have a '$name' method, which is required by $class";
         $class->_add_pre_conditions($pkg, $name, $interface_hash->{$name}{precond});
         $class->_add_post_conditions($pkg, $name, $interface_hash->{$name}{postcond});
+        $class->_add_invariants($pkg, $name, $invariant_hash);
     }
-    $class->_add_invariants($pkg);
 }
 
 sub _add_pre_conditions {
@@ -96,8 +97,36 @@ sub _add_post_conditions {
 }
 
 sub _add_invariants {
-    my ($class, $pkg) = @_;
+    my ($class, $pkg, $name, $invariant_hash) = @_;
     
+    my $guard = sub {
+        # skip methods called by the invariant
+        return if (caller 1)[0] eq $class;
+
+        my $self = shift;
+        return unless ref $self;
+
+        foreach my $desc (keys %{ $invariant_hash }) {
+            my $sub = $invariant_hash->{$desc};
+            $sub->($self)
+              or confess "Invariant '$desc' mandated by $class has been violated";
+        }
+    };
+    if ( $name eq $Spec_for{$class}{constructor_name} ) {
+        my $around = sub {
+            my $orig  = shift;
+            my $class = shift;
+            my $obj = $orig->($class, @_);
+            $guard->($obj);
+            return $obj;
+        };
+        install_modifier($pkg, 'around', $name, $around);
+    }
+    else {
+        foreach my $type ( qw[before after] ) {
+            install_modifier($pkg, $type, $name, $guard);
+        }
+    }
 }
 
 sub _validate_contract_def {
