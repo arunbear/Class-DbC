@@ -7,6 +7,7 @@ use Params::Validate qw(:all);
 use Storable qw( dclone );
 
 my %Spec_for;
+my %Contract_pkg_for;
 
 sub import {
     strict->import();
@@ -36,13 +37,24 @@ sub _governor {
         { type => HASHREF, default => { all => 1 } },
     );
     
-    if ($opt->{all}) {
+    if ($opt->{all}
+        || ($opt->{emulate} && scalar keys %$opt == 1 )) {
         $opt->{$_} = 1 for qw/pre post invariant/;
     }
 
     my $interface_hash = $Spec_for{$class}{interface};
     my $invariant_hash = $Spec_for{$class}{invariant};
+    my $contract_pkg_prefix = _contract_pkg_prefix($class, $pkg);
 
+    my $target_pkg = $pkg;
+    if ($opt->{emulate}) {
+        foreach my $type (qw[pre post invariant]) {
+            if ($opt->{$type}) {
+                $Contract_pkg_for{$class}{$pkg}{$type} = "${contract_pkg_prefix}$type";
+            }
+        }
+        $target_pkg = _emulate($class, $pkg);
+    }
     foreach my $name (keys %{ $interface_hash }) {
         $pkg->can($name)
           or confess "Class $pkg does not have a '$name' method, which is required by $class";
@@ -57,6 +69,15 @@ sub _governor {
             $class->_add_invariants($pkg, $name, $invariant_hash);
         }
     }
+    if ($opt->{emulate}) {
+        return $target_pkg;
+    }
+}
+
+sub _contract_pkg_prefix {
+    my ($class, $pkg) = @_;
+
+    sprintf '%s_%s_%s_', __PACKAGE__, $class, $pkg;
 }
 
 sub _add_pre_conditions {
@@ -71,7 +92,8 @@ sub _add_pre_conditions {
               or confess "Method '$pkg::$name' failed precondition '$desc' mandated by $class";
         }
     };
-    install_modifier($pkg, 'before', $name, $guard);
+    my $target_pkg = $Contract_pkg_for{$class}{$pkg}{pre} || $pkg;
+    install_modifier($target_pkg, 'before', $name, $guard);
 }
 
 sub _add_post_conditions {
@@ -106,7 +128,8 @@ sub _add_post_conditions {
         return unless defined wantarray;
         return wantarray ? @$results : $results->[0];
     };
-    install_modifier($pkg, 'around', $name, $guard);
+    my $target_pkg = $Contract_pkg_for{$class}{$pkg}{post} || $pkg;
+    install_modifier($target_pkg, 'around', $name, $guard);
 }
 
 sub _add_invariants {
@@ -125,6 +148,8 @@ sub _add_invariants {
               or confess "Invariant '$desc' mandated by $class has been violated";
         }
     };
+
+    my $target_pkg = $Contract_pkg_for{$class}{$pkg}{invariant} || $pkg;
     if ( $name eq $Spec_for{$class}{constructor_name} ) {
         my $around = sub {
             my $orig  = shift;
@@ -133,12 +158,42 @@ sub _add_invariants {
             $guard->($obj);
             return $obj;
         };
-        install_modifier($pkg, 'around', $name, $around);
+        install_modifier($target_pkg, 'around', $name, $around);
     }
     else {
         foreach my $type ( qw[before after] ) {
-            install_modifier($pkg, $type, $name, $guard);
+            install_modifier($target_pkg, $type, $name, $guard);
         }
+    }
+}
+
+sub _emulate {
+    my ($class, $pkg) = @_;
+
+    my $leaf_pkg = sprintf '%s_emulated', _contract_pkg_prefix($class, $pkg);
+    _add_super($pkg, $leaf_pkg);
+
+    foreach my $type (qw[pre post invariant]) {
+        my $contract_pkg = $Contract_pkg_for{$class}{$pkg}{$type}
+          or next;
+
+        _add_super($contract_pkg, $leaf_pkg);
+    }
+    return $leaf_pkg;
+}
+
+sub _add_super {
+    my ($super, $pkg) = @_;
+
+    no strict 'refs';
+
+    if ( @{"${pkg}::ISA"} ) {
+        my $between = shift @{"${pkg}::ISA"};
+        unshift @{"${pkg}::ISA"}, $super;
+        _add_super($between, $super);
+    }
+    else {
+        unshift @{"${pkg}::ISA"}, $super;
     }
 }
 
