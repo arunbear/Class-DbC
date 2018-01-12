@@ -31,17 +31,13 @@ sub _add_governor {
 
 sub _governor {
     my $class = shift;
-    my ($pkg, $type) = validate_pos(@_,
+    my ($pkg, $opt) = validate_pos(@_,
         { type => SCALAR },
-        { regex => qr/^all|pre|post|invariant$/, default => 'all' },
+        { type => HASHREF, default => { all => 1 } },
     );
     
-    my %enabled;
-    if ($type eq 'all') {
-        $enabled{$_} = 1 for qw/pre post invariant/;
-    }
-    else {
-        $enabled{$type} = 1;
+    if ($opt->{all}) {
+        $opt->{$_} = 1 for qw/pre post invariant/;
     }
 
     my $interface_hash = $Spec_for{$class}{interface};
@@ -51,13 +47,13 @@ sub _governor {
         $pkg->can($name)
           or confess "Class $pkg does not have a '$name' method, which is required by $class";
 
-        if ($enabled{pre}) {
+        if ($opt->{pre}) {
             $class->_add_pre_conditions($pkg, $name, $interface_hash->{$name}{precond});
         }
-        if ($enabled{post}) {
+        if ($opt->{post}) {
             $class->_add_post_conditions($pkg, $name, $interface_hash->{$name}{postcond});
         }
-        if ($enabled{invariant}) {
+        if ($opt->{invariant}) {
             $class->_add_invariants($pkg, $name, $invariant_hash);
         }
     }
