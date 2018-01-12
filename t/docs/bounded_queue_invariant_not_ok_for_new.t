@@ -5,7 +5,7 @@ use Example::BoundedQueueWithBadNewInv;
 use Example::Contract::BoundedQueue;
 
 my $test_class = 'Example::BoundedQueueWithBadNewInv';
-Example::Contract::BoundedQueue::->govern($test_class, 'invariant');
+Example::Contract::BoundedQueue::->govern($test_class, { invariant => 1 });
 
 
 throws_ok { 
