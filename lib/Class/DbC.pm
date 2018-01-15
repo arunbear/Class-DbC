@@ -25,9 +25,6 @@ sub _add_governor {
 
     no strict 'refs';
     *{"${pkg}::govern"} = \&_governor;
-    *{"${pkg}::_add_pre_conditions"} = \&_add_pre_conditions;
-    *{"${pkg}::_add_post_conditions"} = \&_add_post_conditions;
-    *{"${pkg}::_add_invariants"} = \&_add_invariants;
 }
 
 sub _governor {
@@ -60,13 +57,13 @@ sub _governor {
           or confess "Class $pkg does not have a '$name' method, which is required by $class";
 
         if ($opt->{pre}) {
-            $class->_add_pre_conditions($pkg, $name, $interface_hash->{$name}{precond});
+            _add_pre_conditions($class, $pkg, $name, $interface_hash->{$name}{precond});
         }
         if ($opt->{post}) {
-            $class->_add_post_conditions($pkg, $name, $interface_hash->{$name}{postcond});
+            _add_post_conditions($class, $pkg, $name, $interface_hash->{$name}{postcond});
         }
         if ($opt->{invariant}) {
-            $class->_add_invariants($pkg, $name, $invariant_hash);
+            _add_invariants($class, $pkg, $name, $invariant_hash);
         }
     }
     if ($opt->{emulate}) {
