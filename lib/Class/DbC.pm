@@ -9,11 +9,19 @@ use Storable qw( dclone );
 my %Spec_for;
 my %Contract_pkg_for;
 
+my %Contract_validation_spec = (
+    type      => HASHREF,
+    default   => {},
+);
+
 sub import {
     strict->import();
-    my ($class, %arg) = @_;
-
-    $arg{constructor_name} ||= 'new';
+    my $class = shift;
+    my %arg = validate(@_, {
+        interface => { type => HASHREF },
+        invariant => \%Contract_validation_spec,
+        constructor_name => { type => SCALAR, default => 'new' },
+    });
 
     my $caller_pkg = (caller)[0];
     $Spec_for{ $caller_pkg } = \%arg;
@@ -24,15 +32,16 @@ sub _add_governor {
     my ($pkg) = @_;
 
     no strict 'refs';
-    *{"${pkg}::govern"} = \&_governor;
+    *{"${pkg}::govern"} = \&_govern;
 }
 
-sub _governor {
+sub _govern {
     my $class = shift;
     my ($pkg, $opt) = validate_pos(@_,
         { type => SCALAR },
         { type => HASHREF, default => { all => 1 } },
     );
+    _validate_govern_options(%$opt);
     
     if ($opt->{all}
         || ($opt->{emulate} && scalar keys %$opt == 1 )) {
@@ -41,6 +50,7 @@ sub _governor {
 
     my $interface_hash = $Spec_for{$class}{interface};
     my $invariant_hash = $Spec_for{$class}{invariant};
+
     my $contract_pkg_prefix = _contract_pkg_prefix($class, $pkg);
 
     my $target_pkg = $pkg;
@@ -58,10 +68,14 @@ sub _governor {
           or confess "Class $pkg does not have a '$name' method, which is required by $class";
 
         if ($opt->{pre}) {
-            _add_pre_conditions($class, $target_pkg, $name, $interface_hash->{$name}{precond});
+            my $contract = $interface_hash->{$name};
+            _validate_contract_definition(%$contract);
+            _add_pre_conditions($class, $target_pkg, $name, $contract->{precond});
         }
         if ($opt->{post}) {
-            _add_post_conditions($class, $target_pkg, $name, $interface_hash->{$name}{postcond});
+            my $contract = $interface_hash->{$name};
+            _validate_contract_definition(%$contract);
+            _add_post_conditions($class, $target_pkg, $name, $contract->{postcond});
         }
         if ($opt->{invariant} && %$invariant_hash) {
             _add_invariants($class, $target_pkg, $name, $invariant_hash, $emulated);
@@ -70,6 +84,13 @@ sub _governor {
     if ($opt->{emulate}) {
         return $emulated;
     }
+}
+
+sub _validate_contract_definition {
+    validate(@_, {
+        precond  => \%Contract_validation_spec,
+        postcond => \%Contract_validation_spec,
+    });
 }
 
 sub _contract_pkg_prefix {
@@ -86,6 +107,8 @@ sub _add_pre_conditions {
     my $guard = sub {
         foreach my $desc (keys %{ $pre_cond_hash }) {
             my $sub = $pre_cond_hash->{$desc};
+            ref $sub eq 'CODE'
+              or confess "precondition of $class, '$desc' on '$name' is not a code ref";
             $sub->(@_)
               or confess "Method '$pkg::$name' failed precondition '$desc' mandated by $class";
         }
@@ -119,6 +142,9 @@ sub _add_post_conditions {
 
         foreach my $desc (keys %{ $post_cond_hash }) {
             my $sub = $post_cond_hash->{$desc};
+            ref $sub eq 'CODE'
+              or confess "postcondition of $class, '$desc' on '$name' is not a code ref";
+
             $sub->(@invocant, @old, $results_to_check, @_)
               or confess "Method '$pkg::$name' failed postcondition '$desc' mandated by $class";
         }
@@ -141,6 +167,8 @@ sub _add_invariants {
 
         foreach my $desc (keys %{ $invariant_hash }) {
             my $sub = $invariant_hash->{$desc};
+            ref $sub eq 'CODE'
+              or confess "invariant of $class, '$desc' is not a code ref";
             $sub->($self)
               or confess "Invariant '$desc' mandated by $class has been violated";
         }
@@ -221,10 +249,13 @@ sub _setup_forwards {
     }
 }
 
-sub _validate_contract_def {
+sub _validate_govern_options {
     validate(@_, {
-        precond   => { type => HASHREF, optional => 1 },
-        postcond  => { type => HASHREF, optional => 1 },
+        all       => { type => BOOLEAN, optional => 1 },
+        pre       => { type => BOOLEAN, optional => 1 },
+        post      => { type => BOOLEAN, optional => 1 },
+        invariant => { type => BOOLEAN, optional => 1 },
+        emulate   => { type => BOOLEAN, optional => 1 },
     });
 }
 
