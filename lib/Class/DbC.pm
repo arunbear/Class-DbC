@@ -194,10 +194,14 @@ sub _add_super {
 sub _setup_forwards {
     my ($class, $from_pkg, $to_pkg) = @_;
 
-    no strict 'refs';
-    ${"${from_pkg}::Target"} = $to_pkg;
+    my $version;
+    {
+        no strict 'refs';
+        ${"${from_pkg}::Target"} = $to_pkg;
+        $version = ${"${from_pkg}::VERSION"};
+    }
 
-    if ( ! ${"${from_pkg}::VERSION"} ) {
+    if ( ! $version ) {
 
         my $interface_hash = $Spec_for{$class}{interface};
         my @code = (
@@ -208,9 +212,6 @@ sub _setup_forwards {
 
         foreach my $name (keys %{ $interface_hash }) {
 
-            *{"${from_pkg}::$name"} = sub {
-                ${"${from_pkg}::Target"}->can($name)->(@_);
-            };
             push @code, qq[
                 sub $name {
                     \$Target->can('$name')->(\@_);
