@@ -22,6 +22,7 @@ sub import {
         interface => \%Contract_validation_spec,
         invariant => \%Contract_validation_spec,
         extends   => { type => SCALAR, optional => 1 },
+        clone_with       => { type => CODEREF, optional => 1 },
         constructor_name => { type => SCALAR, default => 'new' },
     });
 
@@ -153,6 +154,8 @@ sub _add_post_conditions {
     
     return unless $post_cond_hash;
 
+    my $cloner = $Spec_for{$class}{clone_with} || \&dclone;
+
     my $guard = sub {
         my $orig = shift;
         my $self = shift;
@@ -162,7 +165,7 @@ sub _add_post_conditions {
 
         my $type = ref $self ? 'object' : 'class';
         if ($type eq 'object') {
-            @old = ( dclone($self) );
+            @old = ( $cloner->($self) );
         }
         my $results = [$orig->($self, @_)];
         my $results_to_check = $results;
