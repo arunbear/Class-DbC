@@ -48,11 +48,10 @@ sub _governor {
 
     if ($opt->{emulate}) {
         my @types = grep { $opt->{$_} } qw[invariant post pre];
-        if (@types) {
-            my $key = join '_', @types;
-            $Contract_pkg_for{$class}{$pkg}{$key} = "${contract_pkg_prefix}$key";
-            ($emulated, $target_pkg) = _emulate($class, $pkg, $key);
-        }
+        my $key = join '_', @types;
+
+        $Contract_pkg_for{$class}{$pkg}{$key} = "${contract_pkg_prefix}$key";
+        ($emulated, $target_pkg) = _emulate($class, $pkg, $key);
     }
     foreach my $name (keys %{ $interface_hash }) {
         $pkg->can($name)
