@@ -26,4 +26,8 @@ Example::Contract::BoundedQueue::->govern($test_class, { emulate => 1, pre=>1 })
 my $q3 = $emulation->new(3);
 is $q3->size => 4;
 
+Example::Contract::BoundedQueue::->govern($test_class, { emulate => 1, pre=>0 });
+my $q4 = $emulation->new(3);
+is $q4->size => 4;
+
 done_testing();
