@@ -1,4 +1,5 @@
 use strict;
+use warnings;
 use Test::Lib;
 use Test::More;
 use Example::Contract::BoundedQueue;
@@ -8,7 +9,6 @@ eval "require $governed";
 
 my $emulation = Example::Contract::BoundedQueue::->govern($governed, { emulate => 1 });
 isnt $emulation, $governed;
-isa_ok $emulation, $governed;
 
 my $q = $emulation->new(3);
 
