@@ -110,7 +110,7 @@ sub _add_pre_conditions {
             ref $sub eq 'CODE'
               or confess "precondition of $class, '$desc' on '$name' is not a code ref";
             $sub->(@_)
-              or confess "Method '$pkg::$name' failed precondition '$desc' mandated by $class";
+              or confess "Precondition '$desc' on '$name', mandated by $class is not satisfied";
         }
     };
     install_modifier($pkg, 'before', $name, $guard);

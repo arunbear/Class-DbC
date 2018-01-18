@@ -9,6 +9,6 @@ Example::Contract::BoundedQueue::->govern('Example::BoundedQueue');
 throws_ok { 
     my $q = Example::BoundedQueue::->new(-3);
 
-} qr/failed precondition 'positive_int_size'/;
+} qr/Precondition 'positive_int_size'.*not satisfied/;
 
 done_testing();

@@ -11,7 +11,7 @@ my $emulation = Example::Contract::BoundedQueue::->govern($governed, { emulate =
 throws_ok { 
     my $q = $emulation->new(-3);
 
-} qr/failed precondition 'positive_int_size'/;
+} qr/Precondition 'positive_int_size'.*not satisfied/;
 
 Example::Contract::BoundedQueue::->govern($governed, { emulate => 1, pre=>0 });
 my $q2 = $emulation->new(-3);
