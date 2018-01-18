@@ -3,6 +3,7 @@ package Class::DbC;
 use strict;
 use Class::Method::Modifiers qw(install_modifier);
 use Carp;
+use Module::Runtime qw(require_module);
 use Params::Validate qw(:all);
 use Storable qw( dclone );
 
@@ -11,21 +12,49 @@ my %Contract_pkg_for;
 
 my %Contract_validation_spec = (
     type      => HASHREF,
-    default   => {},
+    optional  => 1,
 );
 
 sub import {
     strict->import();
     my $class = shift;
     my %arg = validate(@_, {
-        interface => { type => HASHREF },
+        interface => \%Contract_validation_spec,
         invariant => \%Contract_validation_spec,
+        extends   => { type => SCALAR, optional => 1 },
         constructor_name => { type => SCALAR, default => 'new' },
     });
 
     my $caller_pkg = (caller)[0];
     $Spec_for{ $caller_pkg } = \%arg;
+    _handle_extentions($caller_pkg, $arg{extends});
     _add_governor($caller_pkg);
+}
+
+sub merge {
+    my ($h1, $h2) = @_;
+
+    foreach my $k (keys %{ $h2 }) {
+        if (exists $h1->{$k}) {
+            if (   ref $h1->{$k} eq 'HASH'
+                && ref $h2->{$k} eq 'HASH'
+            ) {
+                merge($h1->{$k}, $h2->{$k});
+            }
+        }
+        else {
+            $h1->{$k} = $h2->{$k};
+        }
+    }
+}
+
+sub _handle_extentions {
+    my ($pkg, $super) = @_;
+
+    return unless $super;
+
+    require_module($super);
+    merge($Spec_for{$pkg}, $Spec_for{$super});
 }
 
 sub _add_governor {
@@ -49,6 +78,9 @@ sub _govern {
     }
 
     my $interface_hash = $Spec_for{$class}{interface};
+    scalar keys %$interface_hash > 0
+      or confess "Contract $class has no specified methods";
+
     my $invariant_hash = $Spec_for{$class}{invariant};
 
     my $contract_pkg_prefix = _contract_pkg_prefix($class, $pkg);
