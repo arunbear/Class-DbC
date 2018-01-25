@@ -9,6 +9,10 @@ eval "require $governed";
 
 my $emulation = Example::Contract::BoundedQueue::->govern($governed, { emulate => 1 });
 isnt $emulation, $governed;
+# use MOP::Class;
+# use Data::Dump 'pp'; 
+# warn pp( MOP::Class->new($emulation)->mro );
+isa_ok $emulation, $governed;
 
 my $q = $emulation->new(3);
 

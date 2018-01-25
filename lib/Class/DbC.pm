@@ -233,7 +233,7 @@ sub _emulate {
     _add_super($pkg, $contract_pkg);
 
     my $emulated = sprintf '%s_emulated', _contract_pkg_prefix($class, $pkg);
-    _setup_forwards($class, $emulated, $contract_pkg);
+    _setup_forwards($class, $pkg, $emulated, $contract_pkg);
 
     return ($emulated, $contract_pkg);
 }
@@ -254,7 +254,7 @@ sub _add_super {
 }
 
 sub _setup_forwards {
-    my ($class, $from_pkg, $to_pkg) = @_;
+    my ($class, $orig_pkg, $from_pkg, $to_pkg) = @_;
 
     my $version;
     {
@@ -269,6 +269,7 @@ sub _setup_forwards {
         my @code = (
             "package $from_pkg;",
             "our \$VERSION = 1;",
+            "our \@ISA = ('$orig_pkg');",
             "our \$Target;",
         );
 
