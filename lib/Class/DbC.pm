@@ -296,3 +296,156 @@ sub _validate_govern_options {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Class::DbC - Add Design By Contract easily and flexibly to existing code.
+
+=head1 SYNOPSIS
+
+    # Some existing class
+    package Example;
+
+    sub new {
+        # code not shown
+    }
+
+    sub do_something {
+        # code not shown
+    }
+
+    # A contract
+    package Example::Contract;
+
+    use Class::DbC
+        interface => {
+            do_something => {
+                precond => {
+                    a_description => sub {
+                        # return true if precondition is satistifed
+                    },
+                },
+                postcond => {
+                    a_description => sub {
+                        # return true if postcondition is satistifed
+                    },
+                }
+            },
+            new => {
+                # contracts not shown
+            }
+        },
+        invariant => {
+            a_description => sub {
+                # return true if invariant is satistifed
+            },
+        },
+    ;
+
+    # A program
+    package main;
+    use Example;
+    use Example::Contract;
+
+    Example::Contract->govern('Example');
+
+    my $e = Example->new(...);
+    $e->do_something();
+
+=head1 DESCRIPTION
+
+Class::DbC allows Eiffel style L<Contracts|https://www.eiffel.com/values/design-by-contract/introduction/> to be easily and flexibly added to existing code.
+
+These contracts are separate from the code that they verify, and they can be turned on or not (or even off) at runtime.
+
+
+=head1 REQUIRES
+
+L<Class::Method::Modifiers> 
+
+L<Module::Runtime> 
+
+L<Params::Validate> 
+
+=head1 USAGE
+
+=head2 Defining a contract
+
+A contract is a package defined by using Class::DbC and providing a configuration hash with the following keys
+
+=head3 interface
+
+The value of this key is a hash that describes the interface (methods called by users of the class) of the class being verified.
+
+This hash maps the name of a method to a contract hash which in turn has the following keys:
+
+=head4 precond (preconditions)
+
+The corresponding value is a hash of description => subroutine pairs.
+
+Each such subroutine is a method that receives the same parameters as the method the precondition is attached to,
+and returns either a true or false result. If false is returned, an exception is raised indicating which precondition
+was violated.
+
+A precondition is an assertion that is run before a given method, that defines one or more conditions that must
+be met in order for the given method to be callable.
+
+=head4 postcond (postconditions)
+
+The corresponding value is a hash of description => subroutine pairs.
+
+Each such subroutine is a method that receives the following parameters: the object as it is after the method call,
+the object as it was before the method call, the results of the method call stored in array ref, and any parameters
+that were passed to the method.
+
+The subroutine should return either a true or false result. If false is returned, an exception is raised indicating which postcondition was violated.
+
+A postcondition is an assertion that is run after a given method, that defines one or more conditions that must
+be met after the given method has been called.
+
+=head3 invariant
+
+The value of this key is a hash of description => subroutine pairs that describes the invariants of the class being verified.
+
+Each such subroutine is a method that receives the object as its only parameter, and returns either a true or false result. If false is returned, an exception is raised indicating which invariant
+was violated.
+
+An invariant is an assertion that is run before and after every method in the interface, that defines one or more conditions that must be met before and after the method has been called.
+
+=head3 extends
+
+The value of this key is the name of another contract (the parent) which the one being defined (the child) will extend i.e. any specifications in the parent that are not found in the child contract will be copied to the child contract.
+
+=head2 Applying a contract
+
+Once defined, a contract package is able to call its C<govern> method to verify the behaviour of the target class.
+
+=head3 govern(TARGET, [{ OPTIONS }])
+
+The C<govern> class method expects to be given the name of the target class and an optional hashref of boolean options which are as follows
+
+=head4 pre
+
+Preconditions wil be enabled if this value is true.
+
+=head4 post
+
+Postconditions wil be enabled if this value is true.
+
+=head4 invariant
+
+Invariants wil be enabled if this value is true.
+
+=head4 all
+
+All contract types wil be enabled if this value is true. This is the assumed behaviour if no options are given.
+
+=head4 emulate
+
+If this option is true, C<govern> will not modify the target class, but will return a new class that emulates the target class but is governed by the contract. This emulation can have its contracts adjusted at run time by making further calls to C<govern>.
+
+=head1 EXAMPLES
+
+=head2 Defining a contract
