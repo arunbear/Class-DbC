@@ -617,7 +617,7 @@ A short script showing how the contract is applied:
     is $q->pop => 4;
     done_testing();
 
-In this case, all of the contract types are active. It is also possible to active only certain contract types e.g.
+In this case, all of the contract types are active. It is also possible to activate only certain contract types e.g.
 
     Example::Contract::BoundedQueue::->govern('Example::BoundedQueue', { invariant => 1 });
 
