@@ -409,6 +409,14 @@ An invariant is an assertion that is run before and after every method in the in
 
 The value of this key is the name of another contract (the parent) which the one being defined (the child) will extend i.e. any specifications in the parent that are not found in the child contract will be copied to the child contract.
 
+=head3 clone_with
+
+If the target objects can't be cloned with the L<Storable> module's C<dclone> function, then use this to specify a coderef that returns a deep clone of the object.
+
+=head3 constructor_name
+
+If the constructor of the target class is not named "new", use this to specify its name.
+
 =head2 Applying a contract
 
 Once defined, a contract package is able to call its C<govern> method to verify the behaviour of the target class.
