@@ -641,3 +641,11 @@ L<Class::Contract>
 
 L<Class::Agreement>
 
+=head1 COPYRIGHT
+
+Copyright 2018- Arun Prasaad
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify
+it under the terms of the GNU public license, version 3.
