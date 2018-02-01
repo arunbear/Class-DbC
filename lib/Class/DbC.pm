@@ -360,15 +360,6 @@ Class::DbC allows Eiffel style L<Contracts|https://www.eiffel.com/values/design-
 
 These contracts are separate from the code that they verify, and they can be turned on or not (or even off) at runtime.
 
-
-=head1 REQUIRES
-
-L<Class::Method::Modifiers> 
-
-L<Module::Runtime> 
-
-L<Params::Validate> 
-
 =head1 USAGE
 
 =head2 Defining a contract
@@ -448,4 +439,205 @@ If this option is true, C<govern> will not modify the target class, but will ret
 
 =head1 EXAMPLES
 
-=head2 Defining a contract
+=head2 The Target Class
+
+In this example we create a contract to govern the following bounded queue class.
+
+This is a type of queue that can never have more than the number of items specified at creation time.
+
+The queue maintains a fixed maximum size by evicting items at the front of the queue.
+
+    package Example::BoundedQueue;
+
+    sub new {
+        my( $class, $size ) = @_;
+
+        bless {
+            max_size => $size,
+            items => [],
+        }, $class;
+    }
+
+    sub head {
+        my( $self ) = @_;
+
+        $self->{ items }[0];
+    }
+
+    sub tail {
+        my( $self ) = @_;
+
+        $self->{ items }[-1];
+    }
+
+    sub max_size {
+        my( $self ) = @_;
+
+        $self->{ max_size };
+    }
+
+    sub size {
+        my $self = shift;
+
+        scalar @{ $self->{ items } };
+    }
+
+    sub pop {
+        my $self = shift;
+
+        shift @{ $self->{ items } };
+    }
+
+    sub push {
+        my( $self, $item ) = @_;
+
+        shift @{ $self->{ items } } if @{ $self->{ items } } == $self->{ max_size };
+
+        push @{ $self->{ items } }, $item;
+    }
+
+    1;
+
+=head2 Defining the contract
+
+The contract is the following package:
+
+    package Example::Contract::BoundedQueue;
+
+    use Class::DbC
+        interface => {
+            new => {
+                precond => {
+                    positive_int_size => sub {
+                        my (undef, $size) = @_;
+                        $size =~ /^\d+$/ && $size > 0;
+                    },
+                },
+                postcond => {
+                    zero_sized => sub {
+                        my ($obj) = @_;
+                        $obj->size == 0;
+                    },
+                }
+            },
+            head => {},
+            tail => {},
+            size => {},
+            max_size => {},
+
+            push => {
+                postcond => {
+                    size_increased => sub {
+                        my ($self, $old) = @_;
+
+                        return $self->size < $self->max_size
+                            ? $self->size == $old->size + 1
+                            : 1;
+                    },
+                    tail_updated => sub {
+                        my ($self, $old, $results, $item) = @_;
+                        $self->tail == $item;
+                    },
+                }
+            },
+
+            pop => {
+                precond => {
+                    not_empty => sub {
+                        my ($self) = @_;
+                        $self->size > 0;
+                    },
+                },
+                postcond => {
+                    returns_old_head => sub {
+                        my ($self, $old, $results) = @_;
+                        $results->[0] == $old->head;
+                    },
+                }
+            },
+        },
+        invariant => {
+            max_size_not_exceeded => sub {
+                my ($self) = @_;
+                $self->size <= $self->max_size;
+            },
+        },
+    ;
+
+    1;
+
+The contract constrains the behaviour of its target package in various ways:
+
+=over
+
+=item *
+
+The precondition on C<new> requires that its argument is a positive integer.
+
+=item *
+
+The postconditions on C<push> ensure that the queue size increases by one after a push, and that the newly pushed item is at the back of the queue.
+
+=item *
+
+The postcondition on C<pop> ensures that a popped item was previously at the front of the queue.
+
+=item *
+
+The invariant ensures that the queue never exceeds its maximum size.
+
+=back
+
+=head2 Applying the contract
+
+A short script showing how the contract is applied:
+
+    use strict;
+    use Test::More;
+    use Example::BoundedQueue;
+    use Example::Contract::BoundedQueue;
+
+    Example::Contract::BoundedQueue::->govern('Example::BoundedQueue');
+
+    my $q = Example::BoundedQueue::->new(3);
+
+    $q->push($_) for 1 .. 3;
+    is $q->size => 3;
+
+    $q->push($_) for 4 .. 6;
+    is $q->size => 3;
+    is $q->pop => 4;
+    done_testing();
+
+In this case, all of the contract types are active. It is also possible to active only certain contract types e.g.
+
+    Example::Contract::BoundedQueue::->govern('Example::BoundedQueue', { invariant => 1 });
+
+will only active invariant checking.
+
+=head2 Emulation
+
+Contracts can also be actived in emulation mode, which alows them to be toggled at run time e.g.
+
+    my $target_class = 'Example::BoundedQueue';
+
+    my $emulation = Example::Contract::BoundedQueue::->govern($target_class, { emulate => 1 });
+
+    # all contract types in force
+    my $q = $emulation->new(3);
+
+    Example::Contract::BoundedQueue::->govern($target_class, { emulate => 1, pre=>1, invariant=>1 });
+    # postconditions turned off
+
+    Example::Contract::BoundedQueue::->govern($target_class, { emulate => 1, pre=>1 });
+    # invariants turned off
+
+    Example::Contract::BoundedQueue::->govern($target_class, { emulate => 1, pre=>0 });
+    # preconditions turned off, so all contracts are now ignored
+
+=head1 SEE ALSO
+
+L<Class::Contract>
+
+L<Class::Agreement>
+
