@@ -649,6 +649,10 @@ L<Class::Contract>
 
 L<Class::Agreement>
 
+=head1 BUGS
+
+Please report any bugs or feature requests via the GitHub L<issue tracker|https://github.com/arunbear/Class-DbC/issues>.
+
 =head1 COPYRIGHT
 
 Copyright 2018- Arun Prasaad
