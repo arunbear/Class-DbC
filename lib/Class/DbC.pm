@@ -129,7 +129,7 @@ sub _validate_contract_definition {
 sub _contract_pkg_prefix {
     my ($class, $pkg) = @_;
 
-    sprintf '%s_%s_%s_', __PACKAGE__, $class, $pkg;
+    sprintf '%s_%s_', $pkg, $class;
 }
 
 sub _add_pre_conditions {
@@ -232,7 +232,7 @@ sub _emulate {
     my $contract_pkg = $Contract_pkg_for{$class}{$pkg}{$key};
     _add_super($pkg, $contract_pkg);
 
-    my $emulated = sprintf '%s_emulated', _contract_pkg_prefix($class, $pkg);
+    my $emulated = sprintf '%semulated', _contract_pkg_prefix($class, $pkg);
     _setup_forwards($class, $pkg, $emulated, $contract_pkg);
 
     return ($emulated, $contract_pkg);
