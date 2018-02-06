@@ -2,7 +2,6 @@ use strict;
 use warnings;
 use Test::Lib;
 use Test::Most;
-use MOP;
 use Example::Contract::BoundedQueue;
 
 my $test_class = 'Example::BoundedQueueWithBadNewInv';
