@@ -1,5 +1,8 @@
 package Class::DbC;
 
+our $VERSION = '0.000001';
+$VERSION = eval $VERSION;
+
 use strict;
 use Class::Method::Modifiers qw(install_modifier);
 use Carp;
@@ -268,7 +271,7 @@ sub _setup_forwards {
         my $interface_hash = $Spec_for{$class}{interface};
         my @code = (
             "package $from_pkg;",
-            "our \$VERSION = 1;",
+            "our \$VERSION = 0.000001;",
             "our \@ISA = ('$orig_pkg');",
             "our \$Target;",
         );
