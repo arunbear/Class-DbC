@@ -68,7 +68,7 @@
          "web" : "https://github.com/arunbear/Class-DbC"
       }
    },
-   "version" : "0.000001",
+   "version" : "0.000002",
    "x_authority" : "cpan:ARUNBEAR",
    "x_contributors" : [
       "Arun Prasaad <arunbear@cpan.org>"
